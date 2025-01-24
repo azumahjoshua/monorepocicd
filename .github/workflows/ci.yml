@@ -1,0 +1,118 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - development
+      - staging
+      - canary
+  pull_request:
+
+jobs:
+  # Build and Test Job
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [backend, frontend, ml-service, react-native]
+    steps:
+      # Checkout the code
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Set up the environment based on the service
+      - name: Setup Environment
+        run: |
+          if [ "${{ matrix.service }}" == "ml-service" ]; then
+            echo "Setting up Python"
+            python -m pip install --upgrade pip
+            pip install -r ml-service/requirements.txt
+          else
+            echo "Setting up Node.js"
+            npm ci --legacy-peer-deps
+
+      # Build the service
+      - name: Build Service
+        run: |
+          if [ "${{ matrix.service }}" == "frontend" ]; then
+            npm run build --prefix frontend
+          elif [ "${{ matrix.service }}" == "backend" ]; then
+            npx nx affected --target=build
+          elif [ "${{ matrix.service }}" == "react-native" ]; then
+            npm run build --prefix react-native
+          fi
+
+      # Run Tests
+      - name: Run Tests
+        run: |
+          if [ "${{ matrix.service }}" == "ml-service" ]; then
+            pytest
+          else
+            npm run test --prefix ${{ matrix.service }}
+          fi
+
+      # Static Analysis and Security Scanning
+      - name: Static Analysis and Security Scan
+        run: |
+          if [ "${{ matrix.service }}" == "ml-service" ]; then
+            pip-audit
+          else
+            npm audit && npm run lint --prefix ${{ matrix.service }}
+          fi
+
+      # Upload Build Artifacts
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.service }}-build
+          path: |
+            backend/dist
+            frontend/dist
+            react-native/build
+
+  # Build and Push Docker Images
+  build-and-push-docker:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [backend, frontend, ml-service, react-native]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Build and Push Docker Image
+        run: |
+          IMAGE_NAME=${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}:${{ github.ref_name }}
+          docker build -t $IMAGE_NAME -f ./${{ matrix.service }}/Dockerfile ./${{ matrix.service }}
+          docker push $IMAGE_NAME
+
+  # Deploy to Kubernetes Based on Branch
+  deploy:
+    needs: build-and-push-docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set Deployment Environment
+        id: set-env
+        run: |
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            echo "env=production" >> $GITHUB_ENV
+          elif [[ "${{ github.ref_name }}" == "staging" ]]; then
+            echo "env=staging" >> $GITHUB_ENV
+          elif [[ "${{ github.ref_name }}" == "canary" ]]; then
+            echo "env=canary" >> $GITHUB_ENV
+          elif [[ "${{ github.ref_name }}" == "development" ]]; then
+            echo "env=development" >> $GITHUB_ENV
+          fi
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f kubernetes/$env-frontend-deployment.yaml
+          kubectl apply -f kubernetes/$env-backend-deployment.yaml
+          kubectl apply -f kubernetes/$env-ml-service-deployment.yaml
