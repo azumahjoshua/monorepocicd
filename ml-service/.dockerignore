@@ -1,0 +1,50 @@
+# Ignore node modules
+node_modules
+**/node_modules
+
+# Ignore build outputs
+dist
+build
+out
+.tmp
+*.log
+
+# Ignore temporary files and system-specific files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.bak
+*.tmp
+*.log
+*.pid
+*.seed
+*.state
+
+# Ignore environment and configuration files (use secrets management instead)
+.env
+.env.*.local
+
+# Ignore IDE and editor-specific files
+.idea
+.vscode
+*.code-workspace
+
+# Ignore Git-specific files
+.git
+.gitignore
+.gitattributes
+
+# Ignore NX cache and related files
+.cache
+nx-report.json
+nxdeps.json
+
+# Ignore Dockerfiles (if not needed in the container)
+Dockerfile
+docker-compose.yml
+
+# Ignore other unnecessary files
+coverage
+*.test.*
+*.spec.*

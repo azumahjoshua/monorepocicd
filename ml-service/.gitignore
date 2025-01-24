@@ -1,0 +1,33 @@
+# Byte-compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+
+# Data files
+*.csv
+*.xlsx
+
+# Model files
+*.h5
+*.pkl
+*.joblib
+
+# macOS files
+.DS_Store
+
+# Windows files
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+ model
