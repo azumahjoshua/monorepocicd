@@ -14,7 +14,13 @@
       "!{projectRoot}/test-setup.[jt]s"
     ],
     "sharedGlobals": [
-      "{workspaceRoot}/.github/workflows/ci.yml"
+      "{workspaceRoot}/.github/workflows/ci.yml",
+      "{workspaceRoot}/docker-compose.yml",
+      "{workspaceRoot}/Dockerfile",
+      "{workspaceRoot}/terraform/**/*",
+      "{workspaceRoot}/nx.json",
+      "{workspaceRoot}/tsconfig.base.json",
+      "{workspaceRoot}/package.json"
     ]
   },
   "nxCloudId": "6793aa39a33cc4347cabbb40",
@@ -79,6 +85,17 @@
         "production",
         "^production"
       ]
+    },
+    "docker-build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "docker build -t joshua192/backend:latest -f ./backend/Dockerfile ./backend",
+          "docker build -t joshua192/frontend:latest -f ./frontend/Dockerfile ./frontend",
+          "docker build -t joshua192/ml-service:latest -f ./ml-service/Dockerfile ./ml-service"
+        ]
+      },
+      "inputs": ["sharedGlobals", "^production"]
     }
   }
 }
