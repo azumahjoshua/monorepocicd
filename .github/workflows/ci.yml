@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [backend, frontend, ml-service, react-native]
+        service: [backend, frontend, ml-service]
     steps:
       # Checkout the code
       - uses: actions/checkout@v4
@@ -70,7 +70,6 @@ jobs:
           path: |
             backend/dist
             frontend/dist
-            react-native/build
 
   # Build and Push Docker Images
   build-and-push-docker:
@@ -78,7 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        service: [backend, frontend, ml-service, react-native]
+        service: [backend, frontend, ml-service]
     steps:
       - uses: actions/checkout@v4
 
@@ -111,8 +110,8 @@ jobs:
             echo "env=development" >> $GITHUB_ENV
           fi
 
-      - name: Deploy to Kubernetes
-        run: |
-          kubectl apply -f kubernetes/$env-frontend-deployment.yaml
-          kubectl apply -f kubernetes/$env-backend-deployment.yaml
-          kubectl apply -f kubernetes/$env-ml-service-deployment.yaml
+      # - name: Deploy to Kubernetes
+      #   run: |
+      #     kubectl apply -f kubernetes/$env-frontend-deployment.yaml
+      #     kubectl apply -f kubernetes/$env-backend-deployment.yaml
+      #     kubectl apply -f kubernetes/$env-ml-service-deployment.yaml
