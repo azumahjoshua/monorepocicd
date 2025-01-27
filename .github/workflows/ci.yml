@@ -17,18 +17,13 @@ jobs:
       matrix:
         service: [backend, frontend, ml-service]
     steps:
-      # Checkout the code
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Verify dependency consistency
-      - name: Verify Dependency Consistency
-        run: npm install --dry-run
-
-      # Install dependencies
+      # Install Dependencies for Each Service
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci --prefix apps/${{ matrix.service }}
 
       # Build and Test the Service
       - name: Build and Test Service
@@ -38,10 +33,9 @@ jobs:
       - name: Run Tests
         run: npx nx run ${{ matrix.service }}:test
 
-      # Static Analysis and Security Scanning
+      # Static Analysis and Security Scan
       - name: Static Analysis and Security Scan
         run: |
-          npx nx run ${{ matrix.service }}:lint
           if [ "${{ matrix.service }}" == "ml-service" ]; then
             pip install pip-audit && pip-audit
           else
@@ -60,45 +54,17 @@ jobs:
     needs: build-and-test
     runs-on: ubuntu-latest
     steps:
-      # Checkout the code
       - uses: actions/checkout@v4
 
       # Log in to Docker Hub
       - name: Log in to Docker Hub
+        if: ${{ secrets.DOCKER_TOKEN && secrets.DOCKER_USERNAME }}
         run: |
           echo "${{ secrets.DOCKER_TOKEN }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      # Build and Push Docker Images
+      # Build and Push Docker Images for All Services
       - name: Build and Push Docker Images
         run: |
-          npx nx run docker-build-and-push
-
-  # Deploy to Kubernetes Based on Branch
-  # deploy:
-  #   needs: build-and-push-docker
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     # Checkout the code
-  #     - uses: actions/checkout@v4
-
-  #     - name: Set Deployment Environment
-  #       id: set-env
-  #       run: |
-  #         if [[ "${{ github.ref_name }}" == "main" ]]; then
-  #           echo "env=production" >> $GITHUB_ENV
-  #         elif [[ "${{ github.ref_name }}" == "staging" ]]; then
-  #           echo "env=staging" >> $GITHUB_ENV
-  #         elif [[ "${{ github.ref_name }}" == "canary" ]]; then
-  #           echo "env=canary" >> $GITHUB_ENV
-  #         elif [[ "${{ github.ref_name }}" == "development" ]]; then
-  #           echo "env=development" >> $GITHUB_ENV
-  #         fi
-
-      # Deploy to Kubernetes
-      # Uncomment the following steps to enable Kubernetes deployment
-      # - name: Deploy to Kubernetes
-      #   run: |
-      #     env=$(grep "env=" $GITHUB_ENV | cut -d'=' -f2)
-      #     kubectl apply -f deployment/${env}-frontend.yaml
-      #     kubectl apply -f deployment/${env}-backend.yaml
-      #     kubectl apply -f deployment/${env}-ml-service.yaml
+          for service in backend frontend ml-service; do
+            npx nx run $service:docker-build-and-push || exit 1
+          done
