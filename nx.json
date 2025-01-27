@@ -23,7 +23,7 @@
       "{workspaceRoot}/package.json"
     ]
   },
-  "nxCloudId": "6793aa39a33cc4347cabbb40",
+  "nxCloudId": "your-nx-cloud-id",
   "plugins": [
     {
       "plugin": "@nx/js/typescript",
@@ -63,7 +63,7 @@
       "application": {
         "babel": true,
         "style": "tailwind",
-        "linter": "none",
+        "linter": "eslint",
         "bundler": "vite"
       },
       "component": {
@@ -71,7 +71,7 @@
       },
       "library": {
         "style": "tailwind",
-        "linter": "none"
+        "linter": "eslint"
       }
     }
   },
@@ -86,16 +86,25 @@
         "^production"
       ]
     },
-    "docker-build": {
+    "docker-build-and-push": {
       "executor": "nx:run-commands",
       "options": {
         "commands": [
-          "docker build -t joshua192/backend:latest -f ./backend/Dockerfile ./backend",
-          "docker build -t joshua192/frontend:latest -f ./frontend/Dockerfile ./frontend",
-          "docker build -t joshua192/ml-service:latest -f ./ml-service/Dockerfile ./ml-service"
+          "docker build -t joshua192/frontend:latest --build-arg APP=frontend --build-arg PORT=4200 -f Dockerfile . && docker push joshua192/frontend:latest",
+          "docker build -t joshua192/backend:latest --build-arg APP=backend --build-arg PORT=3000 -f Dockerfile . && docker push joshua192/backend:latest",
+          "docker build -t joshua192/ml-service:latest -f ./ml-service/Dockerfile ./ml-service && docker push joshua192/ml-service:latest"
         ]
       },
       "inputs": ["sharedGlobals", "^production"]
+    },
+    "test": {
+      "inputs": ["default", "^production"]
+    },
+    "serve": {
+      "inputs": ["default"]
+    },
+    "lint": {
+      "inputs": ["default"]
     }
   }
 }
